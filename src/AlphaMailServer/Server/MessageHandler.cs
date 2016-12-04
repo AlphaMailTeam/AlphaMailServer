@@ -63,9 +63,7 @@ namespace AlphaMailServer.Server
                         handleRegister(client, parts[1], parts[2], parts[3], parts[4]);
                     break;
                 case "SEND":
-                    if (client.Username != null && client.Username != string.Empty)
-                        client.SendErrorAlreadyAuth();
-                    else if (parts.Length < 3)
+                    if (parts.Length < 3)
                         client.SendErrorArgLength(lead, 2, parts.Length - 1);
                     else
                         handleSend(client, parts[1], sliceArray(parts, 2));
