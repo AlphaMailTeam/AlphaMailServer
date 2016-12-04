@@ -10,8 +10,8 @@ namespace AlphaMailServer.Networking
     {
         public TcpClient TcpClient { get; private set; }
 
-        public StreamReader StreamReader { get; private set; }
-        public StreamWriter StreamWriter { get; private set; }
+        public BinaryReader BinaryReader { get; private set; }
+        public BinaryWriter BinaryWriter { get; private set; }
 
         public int Ping { get; set; }
 
@@ -26,8 +26,8 @@ namespace AlphaMailServer.Networking
         {
             TcpClient = client;
 
-            StreamReader = new StreamReader(client.GetStream());
-            StreamWriter = new StreamWriter(client.GetStream());
+            BinaryReader = new BinaryReader(client.GetStream());
+            BinaryWriter = new BinaryWriter(client.GetStream());
 
             Ping = 0;
 
@@ -39,8 +39,8 @@ namespace AlphaMailServer.Networking
             while (Sending)
                 ;
             Sending = true;
-            StreamWriter.WriteLine(string.Format(msg, args));
-            StreamWriter.Flush();
+            BinaryWriter.Write(string.Format(msg, args));
+            BinaryWriter.Flush();
             Thread.Sleep(100);
             Sending = false;
         }
@@ -48,10 +48,22 @@ namespace AlphaMailServer.Networking
         {
             Send("AUTH {0}", user);
         }
+        public void SendMessage(string fromUser, string content)
+        {
+            Send("MESSAGE {0} {1}", fromUser, content);
+        }
+        public void SendPublicKey(string user, string pkey, string e)
+        {
+            Send("PKEY {0} {1} {2}", user, pkey, e);
+        }
 
         public void SendError(string msg, params object[] args)
         {
             Send("ERROR {0}", string.Format(msg, args));
+        }
+        public void SendErrorAlreadyAuth()
+        {
+            SendError("Already authenticated!");
         }
         public void SendErrorArgLength(string baseCmd, int expected, int given)
         {
@@ -69,6 +81,10 @@ namespace AlphaMailServer.Networking
         {
             SendError("Must authenticate with server using LOGIN or REGISTER first!");
         }
+        public void SendErrorNoUser(string user)
+        {
+            SendError("No such user {0}", user);
+        }
         public void SendErrorUserExists(string user)
         {
             SendError("User {0} already exists", user);
@@ -76,7 +92,7 @@ namespace AlphaMailServer.Networking
 
         public string Read()
         {
-            return StreamReader.ReadLine();
+            return BinaryReader.ReadString();
         }
     }
 }

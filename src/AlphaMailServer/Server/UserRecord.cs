@@ -1,7 +1,4 @@
 using System;
-using System.Numerics;
-
-using AlphaMailServer.Cryptography;
 
 namespace AlphaMailServer.Server
 {
@@ -9,13 +6,15 @@ namespace AlphaMailServer.Server
     {
         public string Username { get; private set; }
         public string Password { get; private set; }
-        public PublicKey PublicKey { get; private set; }
+        public string Pkey { get; private set; }
+        public string E { get; private set; }
 
         public UserRecord(string username, string password, string pkey, string e)
         {
             Username = username;
             Password = password;
-            PublicKey = new PublicKey(BigInteger.Parse(pkey), BigInteger.Parse(e));
+            Pkey = pkey;
+            E = e;
         }
     }
 }

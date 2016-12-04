@@ -41,8 +41,8 @@ namespace AlphaMailServer.Server
         {
             e.Client.ListenThread.Abort();
             e.Client.PingThread.Abort();
-            e.Client.StreamReader.Close();
-            e.Client.StreamWriter.Close();
+            e.Client.BinaryReader.Close();
+            e.Client.BinaryWriter.Close();
             e.Client.TcpClient.Close();
             if (ConnectedClients.Contains(e.Client))
                 ConnectedClients.Remove(e.Client);

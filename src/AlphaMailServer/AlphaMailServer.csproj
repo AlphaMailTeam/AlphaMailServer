@@ -51,7 +51,6 @@
     <Compile Include="Installer.cs">
       <DependentUpon>Program.cs</DependentUpon>
     </Compile>
-    <Compile Include="Cryptography\PublicKey.cs" />
     <Compile Include="Server\UserRecord.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
@@ -65,6 +64,5 @@
     <Folder Include="Networking\" />
     <Folder Include="Events\" />
     <Folder Include="Server\" />
-    <Folder Include="Cryptography\" />
   </ItemGroup>
 </Project>
