@@ -40,7 +40,6 @@ namespace AlphaMailServer.Server
         private void listener_ClientDisconnected(object sender, ClientDisconnectedEventArgs e)
         {
             e.Client.ListenThread.Abort();
-            e.Client.PingThread.Abort();
             e.Client.BinaryReader.Close();
             e.Client.BinaryWriter.Close();
             e.Client.TcpClient.Close();

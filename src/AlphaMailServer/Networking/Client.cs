@@ -13,12 +13,9 @@ namespace AlphaMailServer.Networking
         public BinaryReader BinaryReader { get; private set; }
         public BinaryWriter BinaryWriter { get; private set; }
 
-        public int Ping { get; set; }
-
         public bool Sending { get; private set; }
 
         public Thread ListenThread { get; set; }
-        public Thread PingThread { get; set; }
 
         public string Username { get; set; }
 
@@ -28,8 +25,6 @@ namespace AlphaMailServer.Networking
 
             BinaryReader = new BinaryReader(client.GetStream());
             BinaryWriter = new BinaryWriter(client.GetStream());
-
-            Ping = 0;
 
             Sending = false;
         }
@@ -44,56 +39,60 @@ namespace AlphaMailServer.Networking
             Thread.Sleep(100);
             Sending = false;
         }
-        public void SendAuth(string user)
+        public void SendAuth(AuthResultCode code, string user)
         {
-            Send("AUTH {0}", user);
+            Send("AUTH {0} {1}", (int)code, user);
         }
-        public void SendMessage(string fromUser, string content)
+        public void SendMessage(string fromUser, string toUser, string content)
         {
-            Send("MESSAGE {0} {1}", fromUser, content);
+            Send("MESSAGE {0} {1} {2}", fromUser, toUser, content);
         }
-        public void SendPublicKey(string user, string pkey, string e)
+        public void SendMessageResult(MessageResultCode code, string toUser)
         {
-            Send("PKEY {0} {1} {2}", user, pkey, e);
+            Send("MESSAGERESULT {0} {1}", (int)code, toUser);
+        }
+        public void SendNoMoreMessages()
+        {
+            Send("NOMOREMESSAGES");
+        }
+        public void SendPublicKey(PKeyResultCode code, string user, string pkey, string e)
+        {
+            Send("PKEY {0} {1} {2} {3}", (int)code, user, pkey, e);
         }
 
         public void SendError(string msg, params object[] args)
         {
             Send("ERROR {0}", string.Format(msg, args));
         }
-        public void SendErrorAlreadyAuth()
-        {
-            SendError("Already authenticated!");
-        }
         public void SendErrorArgLength(string baseCmd, int expected, int given)
         {
             SendError("Command {0} expects {1} argument(s), given: {2}", baseCmd, expected, given);
-        }
-        public void SendErrorIncorrectPassword(string user)
-        {
-            SendError("Incorrect password for {0}", user);
-        }
-        public void SendErrorIncorrectUsername(string user)
-        {
-            SendError("Incorrect username {0}", user);
-        }
-        public void SendErrorNotAuthenticated()
-        {
-            SendError("Must authenticate with server using LOGIN or REGISTER first!");
-        }
-        public void SendErrorNoUser(string user)
-        {
-            SendError("No such user {0}", user);
-        }
-        public void SendErrorUserExists(string user)
-        {
-            SendError("User {0} already exists", user);
         }
 
         public string Read()
         {
             return BinaryReader.ReadString();
         }
+    }
+
+    public enum AuthResultCode
+    {
+        LoginBadPassword,
+        LoginBadUser,
+        LoginSuccess,
+        NotAuthenticated,
+        RegisterBadUser,
+        RegisterSuccess
+    }
+    public enum MessageResultCode
+    {
+        MessageSuccess,
+        NoUser
+    }
+    public enum PKeyResultCode
+    {
+        Success,
+        NoUser
     }
 }
 

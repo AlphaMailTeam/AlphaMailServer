@@ -32,7 +32,7 @@ namespace AlphaMailServer.Server
             {
                 if (lead != "LOGIN" && lead != "REGISTER")
                 {
-                    client.SendErrorNotAuthenticated();
+                    client.SendAuth(AuthResultCode.NotAuthenticated, "0");
                     return;
                 }
             }
@@ -56,7 +56,7 @@ namespace AlphaMailServer.Server
                     break;
                 case "REGISTER":
                     if (client.Username != null && client.Username != string.Empty)
-                        client.SendErrorAlreadyAuth();
+                        client.SendAuth(AuthResultCode.RegisterBadUser, client.Username);
                     else if (parts.Length < 5)
                         client.SendErrorArgLength(lead, 4, parts.Length - 1);
                     else
@@ -79,9 +79,10 @@ namespace AlphaMailServer.Server
             var reader = command.ExecuteReader();
             while (reader.Read())
             {
-                client.SendMessage(reader.GetString("fromUser"), reader.GetString("content"));
+                client.SendMessage(reader.GetString("fromUser"), reader.GetString("toUser"), reader.GetString("content"));
                 Thread.Sleep(1000);
             }
+            client.SendNoMoreMessages();
             reader.Close();
 
             command = null;
@@ -94,23 +95,26 @@ namespace AlphaMailServer.Server
             var record = getUser(user);
 
             if (record == null)
-                client.SendErrorNoUser(user);
+                client.SendPublicKey(PKeyResultCode.NoUser, user, "0", "0");
             else
-                client.SendPublicKey(user, record.Pkey, record.E);
+                client.SendPublicKey(PKeyResultCode.Success, user, record.Pkey, record.E);
         }
         private void handleLogin(Client client, string user, string password)
         {
             var record = getUser(user);
 
             if (record == null)
-                client.SendErrorIncorrectUsername(user);
+                client.SendAuth(AuthResultCode.LoginBadUser, user);
             else if (record.Password.ToUpper() != hashString(password, HASH_ALGO).ToUpper())
-                client.SendErrorIncorrectPassword(user);
+                client.SendAuth(AuthResultCode.LoginBadPassword, user);
             else
             {
                 client.Username = user;
-                client.SendAuth(user);
-                server.AuthenticatedClients.Add(user, client);
+                client.SendAuth(AuthResultCode.LoginSuccess, user);
+                if (server.AuthenticatedClients.ContainsKey(user))
+                    server.AuthenticatedClients[user] = client;
+                else
+                    server.AuthenticatedClients.Add(user, client);
             }
         }
         private void handleRegister(Client client, string user, string password, string pkey, string e)
@@ -118,7 +122,7 @@ namespace AlphaMailServer.Server
             var record = getUser(user);
 
             if (record != null)
-                client.SendErrorUserExists(user);
+                client.SendAuth(AuthResultCode.RegisterBadUser, user);
             else
             {
                 var command = new MySqlCommand("INSERT INTO users(username, password, pkey, e) VALUES(@username, @password, @pkey, @e)", database);
@@ -135,7 +139,7 @@ namespace AlphaMailServer.Server
             var record = getUser(user);
 
             if (record == null)
-                client.SendErrorNoUser(user);
+                client.SendMessageResult(MessageResultCode.NoUser, user);
             else
             {
                 var command = new MySqlCommand("INSERT INTO messages(toUser, fromUser, sendTime, content) VALUES(@toUser, @fromUser, @sendTime, @content)", database);
@@ -144,6 +148,7 @@ namespace AlphaMailServer.Server
                 command.Parameters.AddWithValue("@sendTime", DateTime.Now.ToString());
                 command.Parameters.AddWithValue("@content", message);
                 command.ExecuteNonQuery();
+                client.SendMessageResult(MessageResultCode.MessageSuccess, message);
             }
         }
 

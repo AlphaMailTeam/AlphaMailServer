@@ -40,9 +40,7 @@ namespace AlphaMailServer.Networking
                 {
                     client = new Client(listener.AcceptTcpClient());
                     client.ListenThread = new Thread(() => listenForMessagesThread(client));
-                    client.PingThread = new Thread(() => pingThread(client));
                     client.ListenThread.Start();
-                    client.PingThread.Start();
                     OnClientConnected(new ClientConnectedEventArgs(client));
                 }
                 catch (IOException)
@@ -58,25 +56,7 @@ namespace AlphaMailServer.Networking
                 while (true)
                 {
                     string message = client.Read();
-                    if (message == PONG_MESSAGE)
-                        client.Ping = 0;
-                    else
-                        OnClientMessageReceived(new ClientMessageReceivedEventArgs(client, message));
-                }
-            }
-            catch (IOException)
-            {
-                OnClientDisconnected(new ClientDisconnectedEventArgs(client));
-            }
-        }
-        private void pingThread(Client client)
-        {
-            try
-            {
-                while (true)
-                {
-                    client.Send("PING");
-                    Thread.Sleep(PING_TIMEOUT);
+                    OnClientMessageReceived(new ClientMessageReceivedEventArgs(client, message));
                 }
             }
             catch (IOException)
