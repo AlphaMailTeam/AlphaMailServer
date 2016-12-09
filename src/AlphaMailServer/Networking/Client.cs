@@ -43,6 +43,10 @@ namespace AlphaMailServer.Networking
         {
             Send("AUTH {0} {1}", (int)code, user);
         }
+        public void SendAuthKey(string key)
+        {
+            Send("AUTHKEY {0}", key);
+        }
         public void SendMessage(string fromUser, string toUser, string content)
         {
             Send("MESSAGE {0} {1} {2}", fromUser, toUser, content);

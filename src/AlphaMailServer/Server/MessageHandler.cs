@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -12,9 +13,12 @@ namespace AlphaMailServer.Server
     public class MessageHandler
     {
         public static string HASH_ALGO = "SHA512";
+        public static int AUTHKEY_LENGTH = 0xF;
 
         private AlphaMailServer server;
         private MySqlConnection database;
+
+        private Dictionary<string, string> authKeys = new Dictionary<string, string>();
 
         public MessageHandler(AlphaMailServer server, string dbPass)
         {
@@ -30,7 +34,7 @@ namespace AlphaMailServer.Server
 
             if (client.Username == null || client.Username == "")
             {
-                if (lead != "LOGIN" && lead != "REGISTER")
+                if (lead != "LOGIN" && lead != "REGISTER" && lead != "AUTHKEY")
                 {
                     client.SendAuth(AuthResultCode.NotAuthenticated, "0");
                     return;
@@ -39,6 +43,12 @@ namespace AlphaMailServer.Server
 
             switch (lead)
             {
+                case "AUTHKEY":
+                    if (parts.Length < 2)
+                        client.SendErrorArgLength(lead, 1, parts.Length - 1);
+                    else
+                        handleAuthkey(client, parts[1]);
+                    break;
                 case "CHECK":
                     handleCheck(client);
                     break;
@@ -71,6 +81,15 @@ namespace AlphaMailServer.Server
             }
         }
 
+        private void handleAuthkey(Client client, string user)
+        {
+            string randStr = randomString(AUTHKEY_LENGTH);
+            if (authKeys.ContainsKey(user))
+                authKeys.Remove(user);
+            authKeys.Add(user, randStr);
+            Console.WriteLine(randStr);
+            client.SendAuthKey(randStr);
+        }
         private void handleCheck(Client client)
         {
             var command = new MySqlCommand("SELECT * FROM messages WHERE toUser = @toUser", database);
@@ -99,16 +118,17 @@ namespace AlphaMailServer.Server
             else
                 client.SendPublicKey(PKeyResultCode.Success, user, record.Pkey, record.E);
         }
-        private void handleLogin(Client client, string user, string password)
+        private void handleLogin(Client client, string user, string hash)
         {
             var record = getUser(user);
 
             if (record == null)
                 client.SendAuth(AuthResultCode.LoginBadUser, user);
-            else if (record.Password.ToUpper() != hashString(password, HASH_ALGO).ToUpper())
+            else if (generateToken(record.Password, authKeys[user]) != hash)
                 client.SendAuth(AuthResultCode.LoginBadPassword, user);
             else
             {
+                authKeys.Remove(user);
                 client.Username = user;
                 client.SendAuth(AuthResultCode.LoginSuccess, user);
                 if (server.AuthenticatedClients.ContainsKey(user))
@@ -168,6 +188,22 @@ namespace AlphaMailServer.Server
             {
                 reader.Close();
             }
+        }
+
+        private string generateToken(string passHash, string randChars)
+        {
+            return hashString(passHash + randChars, HASH_ALGO);
+        }
+
+        private const string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890";
+        private static Random rnd = new Random();
+
+        private string randomString(int length)
+        {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < length; i++)
+                sb.Append(alphabet[rnd.Next(0, alphabet.Length)]);
+            return sb.ToString();                      
         }
 
         private string hashString(string text, string method)
