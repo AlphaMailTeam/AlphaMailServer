@@ -87,7 +87,6 @@ namespace AlphaMailServer.Server
             if (authKeys.ContainsKey(user))
                 authKeys.Remove(user);
             authKeys.Add(user, randStr);
-            Console.WriteLine(randStr);
             client.SendAuthKey(randStr);
         }
         private void handleCheck(Client client)
