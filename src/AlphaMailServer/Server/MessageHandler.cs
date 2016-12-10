@@ -92,6 +92,7 @@ namespace AlphaMailServer.Server
         private void handleCheck(Client client)
         {
             var command = new MySqlCommand("SELECT * FROM messages WHERE toUser = @toUser", database);
+            command.Prepare();
             command.Parameters.AddWithValue("@toUser", client.Username);
 
             var reader = command.ExecuteReader();
@@ -105,6 +106,7 @@ namespace AlphaMailServer.Server
 
             command = null;
             command = new MySqlCommand("DELETE FROM messages WHERE toUser = @toUser", database);
+            command.Prepare();
             command.Parameters.AddWithValue("@toUser", client.Username);
             command.ExecuteNonQuery();
         }
@@ -147,6 +149,7 @@ namespace AlphaMailServer.Server
             else
             {
                 var command = new MySqlCommand("INSERT INTO users(username, password, pkey, e) VALUES(@username, @password, @pkey, @e)", database);
+                command.Prepare();
                 command.Parameters.AddWithValue("@username", user);
                 command.Parameters.AddWithValue("@password", hashString(password, HASH_ALGO));
                 command.Parameters.AddWithValue("@pkey", pkey);
@@ -164,6 +167,7 @@ namespace AlphaMailServer.Server
             else
             {
                 var command = new MySqlCommand("INSERT INTO messages(toUser, fromUser, sendTime, content) VALUES(@toUser, @fromUser, @sendTime, @content)", database);
+                command.Prepare();
                 command.Parameters.AddWithValue("@toUser", user);
                 command.Parameters.AddWithValue("@fromUser", client.Username);
                 command.Parameters.AddWithValue("@sendTime", DateTime.Now.ToString());
@@ -176,6 +180,7 @@ namespace AlphaMailServer.Server
         private UserRecord getUser(string user)
         {
             var command = new MySqlCommand("SELECT * FROM users WHERE username = @username", database);
+            command.Prepare();
             command.Parameters.AddWithValue("@username", user);
             var reader = command.ExecuteReader();
             try
