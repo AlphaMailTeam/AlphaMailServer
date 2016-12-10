@@ -124,6 +124,8 @@ namespace AlphaMailServer.Server
 
             if (record == null)
                 client.SendAuth(AuthResultCode.LoginBadUser, user);
+            else if (!authKeys.ContainsKey(user))
+                client.SendAuth(AuthResultCode.LoginBadPassword, user);
             else if (generateToken(record.Password, authKeys[user]) != hash)
                 client.SendAuth(AuthResultCode.LoginBadPassword, user);
             else
