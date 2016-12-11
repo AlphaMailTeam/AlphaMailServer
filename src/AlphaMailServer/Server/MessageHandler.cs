@@ -13,7 +13,7 @@ namespace AlphaMailServer.Server
     public class MessageHandler
     {
         public static string HASH_ALGO = "SHA512";
-        public static int AUTHKEY_LENGTH = 0xF;
+        public static int AUTHKEY_LENGTH = 0xFF;
 
         private AlphaMailServer server;
         private MySqlConnection database;
@@ -73,10 +73,10 @@ namespace AlphaMailServer.Server
                         handleRegister(client, parts[1], parts[2], parts[3], parts[4]);
                     break;
                 case "SEND":
-                    if (parts.Length < 3)
-                        client.SendErrorArgLength(lead, 2, parts.Length - 1);
+                    if (parts.Length < 4)
+                        client.SendErrorArgLength(lead, 3, parts.Length - 1);
                     else
-                        handleSend(client, parts[1], sliceArray(parts, 2));
+                        handleSend(client, parts[1], parts[2], parts[3]);
                     break;
             }
         }
@@ -98,7 +98,7 @@ namespace AlphaMailServer.Server
             var reader = command.ExecuteReader();
             while (reader.Read())
             {
-                client.SendMessage(reader.GetString("fromUser"), reader.GetString("toUser"), reader.GetString("content"));
+                client.SendMessage(reader.GetString("fromUser"), reader.GetString("toUser"), reader.GetString("subject"), reader.GetString("content"));
                 Thread.Sleep(1000);
             }
             client.SendNoMoreMessages();
@@ -158,7 +158,7 @@ namespace AlphaMailServer.Server
             }
 
         }
-        private void handleSend(Client client, string user, string message)
+        private void handleSend(Client client, string user, string subject, string message)
         {
             var record = getUser(user);
 
@@ -166,11 +166,12 @@ namespace AlphaMailServer.Server
                 client.SendMessageResult(MessageResultCode.NoUser, user);
             else
             {
-                var command = new MySqlCommand("INSERT INTO messages(toUser, fromUser, sendTime, content) VALUES(@toUser, @fromUser, @sendTime, @content)", database);
+                var command = new MySqlCommand("INSERT INTO messages(toUser, fromUser, sendTime, subject, content) VALUES(@toUser, @fromUser, @sendTime, @subject, @content)", database);
                 command.Prepare();
                 command.Parameters.AddWithValue("@toUser", user);
                 command.Parameters.AddWithValue("@fromUser", client.Username);
                 command.Parameters.AddWithValue("@sendTime", DateTime.Now.ToString());
+                command.Parameters.AddWithValue("@subject", subject);
                 command.Parameters.AddWithValue("@content", message);
                 command.ExecuteNonQuery();
                 client.SendMessageResult(MessageResultCode.MessageSuccess, message);
@@ -215,16 +216,6 @@ namespace AlphaMailServer.Server
         private string hashString(string text, string method)
         {
             return BitConverter.ToString(((HashAlgorithm)CryptoConfig.CreateFromName(method)).ComputeHash(new UTF8Encoding().GetBytes(text))).Replace("-", string.Empty).ToLower();
-        }
-
-        private string sliceArray(string[] arr, int startIndex, char sep = ' ')
-        {
-            StringBuilder sb = new StringBuilder();
-
-            for (int i = startIndex; i < arr.Length; i++)
-                sb.AppendFormat("{0}{1}", arr[i], sep);
-
-            return sb.ToString();
         }
     }
 }

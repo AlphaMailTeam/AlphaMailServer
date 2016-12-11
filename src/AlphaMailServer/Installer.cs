@@ -11,7 +11,7 @@ namespace AlphaMailServer
             connection.Open();
 
             new MySqlCommand("CREATE TABLE users (username VARCHAR(30), password VARCHAR(128), pkey TEXT, e TEXT );", connection).ExecuteNonQuery();
-            new MySqlCommand("CREATE TABLE messages (toUser VARCHAR(30), fromUser VARCHAR(30), sendTime TEXT, content TEXT );", connection).ExecuteNonQuery();
+            new MySqlCommand("CREATE TABLE messages (toUser VARCHAR(30), fromUser VARCHAR(30), sendTime TEXT, subject TEXT, content TEXT );", connection).ExecuteNonQuery();
 
             connection.Close();
         }
