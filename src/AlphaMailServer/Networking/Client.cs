@@ -63,6 +63,10 @@ namespace AlphaMailServer.Networking
         {
             Send("PKEY {0} {1} {2} {3}", (int)code, user, pkey, e);
         }
+        public void SendUpdateResult(UpdateResultCode code)
+        {
+            Send("UPDATERESULT {0}", (int)code);
+        }
 
         public void SendError(string msg, params object[] args)
         {
@@ -98,5 +102,9 @@ namespace AlphaMailServer.Networking
         Success,
         NoUser
     }
+    public enum UpdateResultCode
+    {
+        BadUser,
+        Success
+    }
 }
-

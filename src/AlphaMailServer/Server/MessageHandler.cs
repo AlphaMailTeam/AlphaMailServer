@@ -78,6 +78,12 @@ namespace AlphaMailServer.Server
                     else
                         handleSend(client, parts[1], parts[2], parts[3]);
                     break;
+                case "UPDATE":
+                    if (parts.Length < 5)
+                        client.SendErrorArgLength(lead, 4, parts.Length - 1);
+                    else
+                        handleUpdate(client, parts[1], parts[2], parts[3], parts[4]);
+                    break;
             }
         }
 
@@ -175,6 +181,24 @@ namespace AlphaMailServer.Server
                 command.Parameters.AddWithValue("@content", message);
                 command.ExecuteNonQuery();
                 client.SendMessageResult(MessageResultCode.MessageSuccess, message);
+            }
+        }
+        private void handleUpdate(Client client, string user, string password, string pkey, string e)
+        {
+            var record = getUser(user);
+            if (record != null ? record.Username != user : false)
+                client.SendUpdateResult(UpdateResultCode.BadUser);
+            else
+            {
+                var command = new MySqlCommand("UPDATE users SET username = @username, password = @password, pkey = @pkey, e = @e WHERE username = @oldUser", database);
+                command.Prepare();
+                command.Parameters.AddWithValue("@username", user);
+                command.Parameters.AddWithValue("@password", hashString(password, HASH_ALGO));
+                command.Parameters.AddWithValue("@pkey", pkey);
+                command.Parameters.AddWithValue("@e", e);
+                command.Parameters.AddWithValue("@oldUser", client.Username);
+                command.ExecuteNonQuery();
+                client.SendUpdateResult(UpdateResultCode.Success);
             }
         }
 
